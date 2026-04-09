@@ -1,41 +1,49 @@
-// 1. inject.js 주입
+// inject.js 주입
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('inject.js');
 (document.head || document.documentElement).appendChild(script);
 
-// 2. 버튼 생성 및 상단바 삽입 함수
 function injectButton() {
-    // 엔트리 상단 메뉴의 왼쪽 영역을 찾습니다.
-    const menuList = document.querySelector('.entryNmMenuLeft > ul');
+    // 1. 파일 아이콘이 들어있는 우측 메뉴 영역 찾기
+    const rightMenu = document.querySelector('.entryNmMenuRight');
     
-    if (menuList && !document.getElementById('entry-cleaner-btn')) {
-        const li = document.createElement('li');
-        li.className = 'entryMenuItem'; // 엔트리 기본 스타일 상속
+    if (rightMenu && !document.getElementById('entry-cleaner-btn')) {
+        // 버튼 생성
+        const cleanBtn = document.createElement('div');
+        cleanBtn.id = 'entry-cleaner-btn';
+        cleanBtn.innerText = "🧹 블록 청소";
         
-        const a = document.createElement('a');
-        a.id = 'entry-cleaner-btn';
-        a.innerText = "🧹 블록 청소";
-        a.style.cursor = 'pointer';
-        a.style.color = '#fff';
-        a.style.padding = '0 15px';
-        a.style.fontWeight = 'bold';
-        a.style.display = 'flex';
-        a.style.alignItems = 'center';
+        // 엔트리 상단 바와 어울리는 스타일
+        cleanBtn.style = `
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 32px;
+            padding: 0 12px;
+            margin-right: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        `;
 
-        a.onclick = (e) => {
-            e.preventDefault();
-            window.dispatchEvent(new CustomEvent('START_CLEANING'));
+        // 마우스 호버 효과
+        cleanBtn.onmouseover = () => cleanBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+        cleanBtn.onmouseout = () => cleanBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+
+        // 클릭 시 신호 보내기
+        cleanBtn.onclick = () => {
+            window.postMessage({ type: 'ENTRY_CLEAN_BLOCKS' }, '*');
         };
 
-        li.appendChild(a);
-        menuList.appendChild(li);
-        console.log("청소 버튼이 상단바에 추가되었습니다.");
+        // 파일 아이콘(첫 번째 자식) 앞에 삽입
+        rightMenu.insertBefore(cleanBtn, rightMenu.firstChild);
     }
 }
 
-// 엔트리는 리액트로 그려지기 때문에 요소가 나타날 때까지 감시합니다.
-const observer = new MutationObserver(() => {
-    injectButton();
-});
-
+// 요소 감시 (엔트리가 동적으로 메뉴를 그려내기 때문)
+const observer = new MutationObserver(injectButton);
 observer.observe(document.body, { childList: true, subtree: true });
