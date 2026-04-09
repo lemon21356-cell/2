@@ -1,60 +1,50 @@
-// inject.js 주입 (이 부분은 동일)
-const script = document.createElement('script');
-script.src = chrome.runtime.getURL('inject.js');
-(document.head || document.documentElement).appendChild(script);
-
-function createFloatingButton() {
-    if (document.getElementById('entry-cleaner-btn')) return;
-
-    const btn = document.createElement('div');
-    btn.id = 'entry-cleaner-btn';
-    btn.innerText = "🧹 블록 청소";
-    
-    // 스타일: 화면 오른쪽 하단에 고정
-    btn.style = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 999999;
-        width: 100px;
-        height: 40px;
-        background-color: #6c5ce7;
-        color: white;
-        border-radius: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 13px;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        transition: transform 0.2s, background 0.2s;
-    `;
-
-    // 마우스 올렸을 때 효과
-    btn.onmouseover = () => {
-        btn.style.transform = "scale(1.1)";
-        btn.style.backgroundColor = "#a29bfe";
-    };
-    btn.onmouseout = () => {
-        btn.style.transform = "scale(1)";
-        btn.style.backgroundColor = "#6c5ce7";
-    };
-
-    // 클릭 이벤트
-    btn.onclick = () => {
-        window.postMessage({ type: 'ENTRY_CLEAN_BLOCKS' }, '*');
-    };
-
+// 버튼 생성 및 UI 추가
+const setupCleanButton = () => {
+    const btn = document.createElement('button');
+    btn.innerText = "쓸모없는 블록 삭제";
+    btn.style.cssText = "position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px; background: #00bb33; color: white; border: none; border-radius: 5px; cursor: pointer;";
     document.body.appendChild(btn);
-}
 
-// 페이지 로드 시 버튼 생성
-if (document.readyState === 'complete') {
-    createFloatingButton();
-} else {
-    window.addEventListener('load', createFloatingButton);
-}
+    btn.onclick = () => {
+        if (confirm("연결되지 않은 모든 블록을 삭제하시겠습니까?")) {
+            deleteUnusedBlocks();
+        }
+    };
+};
 
-// 혹시 모르니 주기적으로 체크해서 버튼이 없으면 다시 생성
-setInterval(createFloatingButton, 2000);
+// 블록 삭제 로직
+const deleteUnusedBlocks = () => {
+    // 엔트리 워크스페이스의 블록 엔진에 접근
+    // Entry.mainWorkspace는 엔트리 내부 전역 객체입니다.
+    if (typeof Entry !== 'undefined' && Entry.mainWorkspace) {
+        const board = Entry.mainWorkspace.board;
+        const code = board.code;
+        const threads = code.getThreads(); // 모든 블록 묶음(쓰레드)을 가져옴
+
+        threads.forEach(thread => {
+            const firstBlock = thread.getFirstBlock();
+            
+            // 시작 블록(이벤트 블록)으로 시작하지 않는 독립된 블록인지 확인
+            // 엔트리에서는 'start_event' 등의 타입으로 시작하지 않으면 실행되지 않는 블록인 경우가 많습니다.
+            if (firstBlock && !isStartingBlock(firstBlock)) {
+                thread.destroy(); // 블록 묶음 삭제
+            }
+        });
+        
+        // 화면 업데이트
+        board.render();
+        alert("정리가 완료되었습니다!");
+    } else {
+        alert("엔트리 워크스페이스를 찾을 수 없습니다.");
+    }
+};
+
+// 시작 블록(이벤트 블록)인지 판별하는 함수
+const isStartingBlock = (block) => {
+    const type = block.type;
+    // 엔트리의 시작 블록들은 보통 'when_'으로 시작하거나 특정 시작 타입을 가집니다.
+    return type.startsWith('when_') || type.includes('start');
+};
+
+// 페이지 로드 시 버튼 설치
+setTimeout(setupCleanButton, 3000);
