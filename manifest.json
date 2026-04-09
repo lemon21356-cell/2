@@ -1,19 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "엔트리 블록 청소기",
-  "version": "1.1",
-  "permissions": ["scripting"],
-  "host_permissions": ["https://playentry.org/*"],
-  "web_accessible_resources": [
-    {
-      "resources": ["inject.js"],
-      "matches": ["https://playentry.org/*"]
-    }
-  ],
+  "name": "엔트리 블록 정리기",
+  "version": "1.0",
+  "description": "연결되지 않은 쓸모없는 블록을 한 번에 삭제합니다.",
+  "permissions": ["activeTab"],
   "content_scripts": [
     {
       "matches": ["https://playentry.org/ws*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "action": {
+    "default_title": "블록 삭제하기"
+  }
 }
