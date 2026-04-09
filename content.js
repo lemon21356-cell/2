@@ -1,50 +1,74 @@
-// 버튼 생성 및 UI 추가
+// 1. 버튼 생성 및 UI 설정 (우측 하단으로 이동)
 const setupCleanButton = () => {
+    // 중복 생성 방지
+    if (document.getElementById('entry-cleaner-btn')) return;
+
     const btn = document.createElement('button');
+    btn.id = 'entry-cleaner-btn';
     btn.innerText = "쓸모없는 블록 삭제";
-    btn.style.cssText = "position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 10px; background: #00bb33; color: white; border: none; border-radius: 5px; cursor: pointer;";
+    
+    // 위치를 아래쪽(bottom)으로 수정
+    btn.style.cssText = `
+        position: fixed; 
+        bottom: 20px; 
+        right: 20px; 
+        z-index: 9999; 
+        padding: 12px 16px; 
+        background: #00bb33; 
+        color: white; 
+        border: none; 
+        border-radius: 8px; 
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    `;
+    
     document.body.appendChild(btn);
 
     btn.onclick = () => {
-        if (confirm("연결되지 않은 모든 블록을 삭제하시겠습니까?")) {
+        if (confirm("연결되지 않은(회색 처리된) 블록들을 모두 삭제할까요?")) {
             deleteUnusedBlocks();
         }
     };
 };
 
-// 블록 삭제 로직
+// 2. 블록 삭제 핵심 로직
 const deleteUnusedBlocks = () => {
-    // 엔트리 워크스페이스의 블록 엔진에 접근
-    // Entry.mainWorkspace는 엔트리 내부 전역 객체입니다.
+    // Entry 객체 존재 여부 재확인
     if (typeof Entry !== 'undefined' && Entry.mainWorkspace) {
         const board = Entry.mainWorkspace.board;
         const code = board.code;
-        const threads = code.getThreads(); // 모든 블록 묶음(쓰레드)을 가져옴
+        const threads = code.getThreads(); 
 
+        let count = 0;
         threads.forEach(thread => {
             const firstBlock = thread.getFirstBlock();
             
-            // 시작 블록(이벤트 블록)으로 시작하지 않는 독립된 블록인지 확인
-            // 엔트리에서는 'start_event' 등의 타입으로 시작하지 않으면 실행되지 않는 블록인 경우가 많습니다.
+            // 시작 블록 없이 떠 있는 블록인지 체크
             if (firstBlock && !isStartingBlock(firstBlock)) {
-                thread.destroy(); // 블록 묶음 삭제
+                thread.destroy(); 
+                count++;
             }
         });
         
-        // 화면 업데이트
         board.render();
-        alert("정리가 완료되었습니다!");
+        alert(`${count}개의 블록 묶음을 정리했습니다!`);
     } else {
-        alert("엔트리 워크스페이스를 찾을 수 없습니다.");
+        alert("아직 엔트리 워크스페이스가 로드되지 않았습니다. 잠시 후 다시 시도해주세요.");
     }
 };
 
-// 시작 블록(이벤트 블록)인지 판별하는 함수
+// 시작 블록 판별 함수
 const isStartingBlock = (block) => {
     const type = block.type;
-    // 엔트리의 시작 블록들은 보통 'when_'으로 시작하거나 특정 시작 타입을 가집니다.
-    return type.startsWith('when_') || type.includes('start');
+    // 엔트리 이벤트 블록들의 일반적인 접두어
+    return type.startsWith('when_') || type.includes('start') || type.includes('clicked');
 };
 
-// 페이지 로드 시 버튼 설치
-setTimeout(setupCleanButton, 3000);
+// 3. 엔트리 엔진이 완전히 로드될 때까지 반복 확인 (최대 10초)
+const checkEntryLoaded = setInterval(() => {
+    if (typeof Entry !== 'undefined' && Entry.mainWorkspace) {
+        setupCleanButton();
+        clearInterval(checkEntryLoaded); // 로드 완료 시 반복 멈춤
+    }
+}, 1000);
