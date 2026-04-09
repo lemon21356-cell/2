@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "엔트리 블록 청소기",
+  "version": "1.0",
+  "description": "연결되지 않은 미사용 블록을 한 번에 제거합니다.",
+  "permissions": ["scripting"],
+  "host_permissions": ["https://playentry.org/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://playentry.org/ws*"],
+      "js": ["content.js"]
+    }
+  ]
+}
