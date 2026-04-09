@@ -1,48 +1,60 @@
-// inject.js 주입
+// inject.js 주입 (이 부분은 동일)
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('inject.js');
 (document.head || document.documentElement).appendChild(script);
 
-function injectButton() {
-    // 1. 파일(저장) 버튼이 포함된 상단 우측 메뉴 영역을 찾습니다.
-    // 엔트리 업데이트에 따라 클래스명이 바뀔 수 있어 여러 후보를 넣었습니다.
-    const rightMenu = document.querySelector('.entryNmMenuRight') || 
-                      document.querySelector('[class*="entryNmMenuRight"]');
-    
-    // 버튼이 이미 있거나 메뉴를 못 찾으면 중단
-    if (!rightMenu || document.getElementById('entry-cleaner-btn')) return;
+function createFloatingButton() {
+    if (document.getElementById('entry-cleaner-btn')) return;
 
-    // 2. 버튼 생성
-    const cleanBtn = document.createElement('div');
-    cleanBtn.id = 'entry-cleaner-btn';
-    cleanBtn.innerText = "🧹 블록 청소";
+    const btn = document.createElement('div');
+    btn.id = 'entry-cleaner-btn';
+    btn.innerText = "🧹 블록 청소";
     
-    // 스타일: 눈에 확 띄도록 배경색을 약간 넣었습니다.
-    cleanBtn.style = `
-        display: inline-flex;
+    // 스타일: 화면 오른쪽 하단에 고정
+    btn.style = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 999999;
+        width: 100px;
+        height: 40px;
+        background-color: #6c5ce7;
+        color: white;
+        border-radius: 20px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        height: 30px;
-        padding: 0 10px;
-        margin-right: 8px;
-        background-color: #ff5e5e; /* 눈에 띄게 빨간색 계열로 우선 테스트 */
-        color: white;
-        border-radius: 6px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: bold;
         cursor: pointer;
-        z-index: 999999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        transition: transform 0.2s, background 0.2s;
     `;
 
-    cleanBtn.onclick = (e) => {
-        e.stopPropagation();
+    // 마우스 올렸을 때 효과
+    btn.onmouseover = () => {
+        btn.style.transform = "scale(1.1)";
+        btn.style.backgroundColor = "#a29bfe";
+    };
+    btn.onmouseout = () => {
+        btn.style.transform = "scale(1)";
+        btn.style.backgroundColor = "#6c5ce7";
+    };
+
+    // 클릭 이벤트
+    btn.onclick = () => {
         window.postMessage({ type: 'ENTRY_CLEAN_BLOCKS' }, '*');
     };
 
-    // 3. 맨 앞에 삽입
-    rightMenu.prepend(cleanBtn);
-    console.log("청소 버튼 삽입 시도 성공!");
+    document.body.appendChild(btn);
 }
 
-// 주기적으로 확인 (MutationObserver가 놓치는 경우 대비)
-setInterval(injectButton, 1000);
+// 페이지 로드 시 버튼 생성
+if (document.readyState === 'complete') {
+    createFloatingButton();
+} else {
+    window.addEventListener('load', createFloatingButton);
+}
+
+// 혹시 모르니 주기적으로 체크해서 버튼이 없으면 다시 생성
+setInterval(createFloatingButton, 2000);
